@@ -94,6 +94,12 @@
             <input type="checkbox" id="syntax"> Включить проверку синтаксиса
         </label>
     </div>
+    
+    <div class="form-group" style="margin-top: 24px;">
+        <button id="reset_btn" style="background-color: var(--tg-theme-destructive-text-color, #ff3b30); color: #fff; width: 100%; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
+            🔄 Сбросить настройки чата
+        </button>
+    </div>
 
     <script>
         // Инициализация Telegram WebApp
@@ -125,6 +131,20 @@
         // Показываем главную кнопку Telegram
         tg.MainButton.text = "СОХРАНИТЬ";
         tg.MainButton.show();
+                // Слушаем нажатие на кнопку сброса
+        document.getElementById('reset_btn').addEventListener('click', function() {
+            // Вызываем нативное окно подтверждения Telegram
+            tg.showConfirm("Вы уверены, что хотите сбросить настройки выбранного чата к значениям по умолчанию?", function(confirmed) {
+                if (confirmed) {
+                    const data = {
+                        action: "reset",
+                        chat_id: chatSelector.value // передаем ID выбранного в выпадающем списке чата
+                    };
+                    // Отправляем команду в бота
+                    tg.sendData(JSON.stringify(data));
+                }
+            });
+        });
 
         // Обрабатываем нажатие кнопки "СОХРАНИТЬ"
         tg.onEvent('mainButtonClicked', function() {
