@@ -61,7 +61,6 @@
 </head>
 <body>
 
-    <!-- БЛОК ВЫБОРА ЧАТА -->
     <div class="form-group highlight-box">
         <label for="chat_selector" style="color: var(--tg-theme-button-color, #3390ec);">Настраиваемый чат:</label>
         <select id="chat_selector" style="font-weight: bold; border-color: transparent; background-color: transparent; outline: none; padding: 5px 0;"></select>
@@ -105,11 +104,23 @@
             <input type="checkbox" id="syntax"> Включить проверку синтаксиса
         </label>
     </div>
+
     <div class="form-group">
         <label class="checkbox-label">
-            <input type="checkbox" id="random_questions"> Разрешить случайные вопросы
+            <input type="checkbox" id="random_questions"> Разрешить случайные сообщения
         </label>
     </div>
+
+    <div class="form-group">
+        <label for="random_question_prob">Вероятность генерации вопроса (от 0 до 1)</label>
+        <input type="number" id="random_question_prob" step="0.001" min="0" max="1" placeholder="Например: 0.05">
+    </div>
+
+    <div class="form-group">
+        <label for="random_participation_prob">Вероятность участия в диалоге (от 0 до 1)</label>
+        <input type="number" id="random_participation_prob" step="0.001" min="0" max="1" placeholder="Например: 0.1">
+    </div>
+    
     <div class="form-group" style="margin-top: 24px;">
         <button id="reset_btn" style="background-color: var(--tg-theme-destructive-text-color, #ff3b30); color: #fff; width: 100%; border: none; padding: 12px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer;">
             🔄 Сбросить настройки чата
@@ -118,40 +129,23 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Растягиваем на весь экран
-
+        tg.expand();
         const urlParams = new URLSearchParams(window.location.search);
         let config = { current: null, chats: [] };
-        
-        // Разбираем JSON с чатами, который передал бот
         if (urlParams.has('config')) {
-            try {
-                config = JSON.parse(urlParams.get('config'));
-            } catch(e) {
-                console.error("Failed to parse config", e);
-            }
+            try { config = JSON.parse(urlParams.get('config')); } catch(e) {}
         }
-
         const chatSelector = document.getElementById('chat_selector');
-        
-        // Заполняем выпадающий список группами
         if (config.chats && config.chats.length > 0) {
             config.chats.forEach(chat => {
                 let opt = document.createElement('option');
-                opt.value = chat.id;
-                opt.textContent = chat.title;
-                chatSelector.appendChild(opt);
+                opt.value = chat.id; opt.textContent = chat.title; chatSelector.appendChild(opt);
             });
-            if (config.current) {
-                chatSelector.value = config.current;
-            }
+            if (config.current) chatSelector.value = config.current;
         } else {
             let opt = document.createElement('option');
-            opt.textContent = "Обновите меню бота";
-            chatSelector.appendChild(opt);
+            opt.textContent = "Обновите меню бота"; chatSelector.appendChild(opt);
         }
-
-        // Функция подстановки данных при выборе чата
         function loadChatSettings(chatId) {
             const chat = config.chats.find(c => c.id == chatId);
             if (!chat) return;
@@ -162,39 +156,18 @@
             document.getElementById('voice').value = chat.vr || "false";
             document.getElementById('syntax').checked = chat.cs === true;
         }
-
-        // Инициализируем форму
-        if (config.chats.length > 0) {
-            loadChatSettings(chatSelector.value);
-        }
-
-        // Слушаем изменение группы в селекторе и меняем значения в полях
-        chatSelector.addEventListener('change', function() {
-            loadChatSettings(this.value);
-        });
-
-        tg.MainButton.text = "СОХРАНИТЬ";
-        tg.MainButton.show();
-
-        // Обработка кнопки Сброса
+        if (config.chats.length > 0) loadChatSettings(chatSelector.value);
+        chatSelector.addEventListener('change', function() { loadChatSettings(this.value); });
+        tg.MainButton.text = "СОХРАНИТЬ"; tg.MainButton.show();
         document.getElementById('reset_btn').addEventListener('click', function() {
-            tg.showConfirm("Вы уверены, что хотите сбросить настройки выбранного чата к значениям по умолчанию?", function(confirmed) {
-                if (confirmed) {
-                    const data = {
-                        action: "reset",
-                        chat_id: chatSelector.value
-                    };
-                    tg.sendData(JSON.stringify(data));
-                }
+            tg.showConfirm("Сбросить настройки выбранного чата к значениям по умолчанию?", function(c) {
+                if (c) tg.sendData(JSON.stringify({ action: "reset", chat_id: chatSelector.value }));
             });
         });
-
-        // Обрабатываем нажатие главной кнопки "СОХРАНИТЬ"
         tg.onEvent('mainButtonClicked', function() {
             let voiceVal = document.getElementById("voice").value;
             if (voiceVal === "false") voiceVal = false;
-
-            const data = {
+            tg.sendData(JSON.stringify({
                 chat_id: chatSelector.value,
                 trigger_word: document.getElementById("trigger").value || "Нука",
                 mood: document.getElementById("mood").value,
@@ -202,9 +175,7 @@
                 max_tokens: document.getElementById("max_tokens").value || 4096,
                 voice_response: voiceVal,
                 check_syntax: document.getElementById("syntax").checked
-            };
-            
-            tg.sendData(JSON.stringify(data));
+            }));
         });
     </script>
 </body>
